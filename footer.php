@@ -85,6 +85,9 @@
 	<script src="assets/js/scripts.js"></script>
 
 
+
+	<?php get_template_part('template-yur-calculator'); ?>
+
     <?php wp_footer(); ?>
 </body>
 </html>
