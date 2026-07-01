@@ -178,14 +178,99 @@ const onExcept = (event) => {
         editValue.textContent = `${editInputValue.value} шт`
     }
 }
+const orderButton = document.querySelector('#simplecheckout_button_confirm')
+const orderMessage = document.querySelector('#basket-order-message')
 
+const getSelectedLabel = (selector) => {
+    const selected = document.querySelector(`${selector}:checked`)
 
+    if (!selected) {
+        return ''
+    }
 
+    const label = selected.closest('label')
 
+    return label ? label.textContent.replace(/\s+/g, ' ').trim() : selected.value
+}
 
+const setOrderMessage = (message, type = 'success') => {
+    if (!orderMessage) {
+        return
+    }
 
+    orderMessage.textContent = message
+    orderMessage.classList.remove('none', 'basket-order-message--success', 'basket-order-message--error')
+    orderMessage.classList.add(`basket-order-message--${type}`)
+}
 
+const clearBasketAfterOrder = () => {
+    localStorage.removeItem('order')
+    forAsyncBasket = []
+    allProdBasket.innerHTML = ''
+    setCartCountBasket(forAsyncBasket)
+    subtotalSum.textContent = '0'
+    totalSum.textContent = '0'
+}
 
+const onOrderSubmit = async (event) => {
+    event.preventDefault()
+
+    const currentProducts = JSON.parse(localStorage.getItem('order')) || []
+    const customerName = document.querySelector('#customer_firstname')?.value.trim() || ''
+    const customerEmail = document.querySelector('#customer_email')?.value.trim() || ''
+    const customerPhone = document.querySelector('#customer_telephone')?.value.trim() || ''
+
+    if (!currentProducts.length) {
+        setOrderMessage('Корзина пуста.', 'error')
+        return
+    }
+
+    if (!customerName || !customerPhone) {
+        setOrderMessage('Заполните ФИО и телефон.', 'error')
+        return
+    }
+
+    const formData = new FormData()
+    formData.append('action', 'inmi_send_basket_order')
+    formData.append('nonce', inmiBasketOrder.nonce)
+    formData.append('customer_name', customerName)
+    formData.append('customer_email', customerEmail)
+    formData.append('customer_phone', customerPhone)
+    formData.append('shipping', getSelectedLabel('input[name="shipping_method"]'))
+    formData.append('address', document.querySelector('#shipping_address_address_1')?.value.trim() || '')
+    formData.append('payment', getSelectedLabel('input[name="payment_method"]'))
+    formData.append('comment', document.querySelector('#comment')?.value.trim() || '')
+    formData.append('total', totalSum.textContent.trim())
+    formData.append('products', JSON.stringify(currentProducts))
+
+    orderButton.classList.add('disabled')
+    orderButton.setAttribute('aria-disabled', 'true')
+    setOrderMessage('Отправляем заказ...', 'success')
+
+    try {
+        const response = await fetch(inmiBasketOrder.ajaxUrl, {
+            method: 'POST',
+            body: formData,
+        })
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.data?.message || 'Не удалось отправить заказ.')
+        }
+
+        clearBasketAfterOrder()
+        setOrderMessage(result.data?.message || 'ваш заказ сформирован и направлен менеджеру', 'success')
+    } catch (error) {
+        setOrderMessage(error.message || 'Не удалось отправить заказ.', 'error')
+    } finally {
+        orderButton.classList.remove('disabled')
+        orderButton.removeAttribute('aria-disabled')
+    }
+}
+
+if (orderButton) {
+    orderButton.addEventListener('click', onOrderSubmit)
+}
 
 
 getData();

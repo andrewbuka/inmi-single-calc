@@ -241,6 +241,8 @@
                                             
                                             
 
+                                            <div id="basket-order-message" class="basket-order-message none" role="status" aria-live="polite"></div>
+
                                             <div class="simplecheckout-button-block buttons" id="buttons">
                                                 <div class="simplecheckout-button-right">
                                                                     
